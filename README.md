@@ -4,7 +4,9 @@
 
 <img width="1320" height="2342" alt="15E36530-124E-4943-AEEA-21D6400BE658_1_201_a" src="https://github.com/user-attachments/assets/7d786ccd-bf23-4745-aff2-df3ee8ce1f64" />
 
-Signex illustre le mécanisme de **dynamic linking** exigé par la DSP2 : chaque transaction génère une signature ES256 unique, ancrée dans le biométrique de l'utilisateur (Face ID / Touch ID). La signature est non-rejouable par construction — le payload signé contient un timestamp et un nonce, ce qui garantit qu'aucune deux signatures ne seront jamais identiques.
+Signex illustre le mécanisme de **dynamic linking** exigé par la DSP2 : chaque transaction génère une signature ES256 unique, ancrée dans le biométrique de l'utilisateur (Face ID / Touch ID). La signature est non-rejouable par construction : le payload signé contient un timestamp et un nonce, ce qui garantit qu'aucune deux signatures ne seront jamais identiques.
+
+---
 
 ## Lancer le projet
 
@@ -20,6 +22,8 @@ WebAuthn fonctionne sur `localhost` sans HTTPS. Pour tester Face ID sur mobile, 
 
 **Demo en ligne** : `https://jxgedouard.github.io/signex`
 
+---
+
 ## Stack technique
 
 | Couche | Technologie |
@@ -29,6 +33,8 @@ WebAuthn fonctionne sur `localhost` sans HTTPS. Pour tester Face ID sur mobile, 
 | Frontend | HTML, CSS, JavaScript vanilla, ES modules |
 | Typo | Syne (display), JetBrains Mono (technique) |
 | Dépendances | Aucune |
+
+---
 
 ## Architecture
 
@@ -41,33 +47,35 @@ WebAuthn fonctionne sur `localhost` sans HTTPS. Pour tester Face ID sur mobile, 
       |
       | pop-up Face ID / Touch ID natif
       v
-[Secure Enclave — génère paire de clés ECDSA P-256]
+[Secure Enclave : génère paire de clés ECDSA P-256]
       |
       | retourne credentialId + clé publique
       v
-[Mémoire de session — webauthn.js]
+[Mémoire de session : webauthn.js]
 
       |
       | saisie montant + destinataire
       v
-[construirePayload() — crypto.js]
+[construirePayload() : crypto.js]
       |
       | { montant, destinataire, timestamp, nonce }
       v
-[encoderBase64url() — challenge WebAuthn]
+[encoderBase64url() : challenge WebAuthn]
       |
       | navigator.credentials.get()
       v
-[Secure Enclave — signe le challenge avec clé privée]
+[Secure Enclave : signe le challenge avec clé privée]
       |
       | retourne signature ES256 brute (DER)
       v
-[formaterSignature() — crypto.js]
+[formaterSignature() : crypto.js]
       |
       | "A3F7·92BC·E1D4·..."
       v
-[Historique de session — ui.js]
+[Historique de session : ui.js]
 ```
+
+---
 
 ## Structure du projet
 
@@ -82,13 +90,15 @@ signex/
 └── README.md
 ```
 
+---
+
 ## Choix techniques
 
 ### Pourquoi WebAuthn et pas OTP ou HMAC
 
 Un OTP (code SMS) repose sur un secret partagé entre le serveur et l'utilisateur. Si le serveur est compromis, tous les OTPs sont compromis. WebAuthn est asymétrique : la clé privée ne quitte jamais le secure enclave de l'appareil, le serveur ne connaît que la clé publique. Rien à voler côté serveur.
 
-HMAC exige que le serveur stocke un secret symétrique par utilisateur — même problème. WebAuthn n'a aucun secret côté serveur.
+HMAC exige que le serveur stocke un secret symétrique par utilisateur, même problème. WebAuthn n'a aucun secret côté serveur.
 
 ### Pourquoi ES256 (ECDSA P-256)
 
@@ -104,7 +114,9 @@ Toute la cryptographie dans Signex est déléguée au navigateur (`crypto.getRan
 
 ### Lien avec la DSP2
 
-La DSP2 exige pour les paiements deux facteurs parmi : connaissance, possession, inhérence. WebAuthn couvre possession (l'appareil enregistré) et inhérence (biométrique). Le dynamic linking exige que la signature soit cryptographiquement liée au montant et au bénéficiaire — c'est exactement ce que fait le payload `{ montant, destinataire, timestamp, nonce }` encodé dans le challenge WebAuthn.
+La DSP2 exige pour les paiements deux facteurs parmi : connaissance, possession, inhérence. WebAuthn couvre possession (l'appareil enregistré) et inhérence (biométrique). Le dynamic linking exige que la signature soit cryptographiquement liée au montant et au bénéficiaire, ce que fait le payload `{ montant, destinataire, timestamp, nonce }` encodé dans le challenge WebAuthn.
+
+---
 
 ## Limites de la démo
 
