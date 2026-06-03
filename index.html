@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Signex — Transaction Signing</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- En-tête global — toujours visible -->
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="logo">
+        <span class="logo-icon">⬡</span>
+        <span class="logo-text">Signex</span>
+      </div>
+      <div class="header-badge" id="passkey-status-badge">
+        <span class="badge-dot"></span>
+        <span class="badge-label">Aucun passkey</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Fond animé -->
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-glow" aria-hidden="true"></div>
+
+  <main class="app-main">
+
+    <!-- ÉCRAN 1 — Enregistrement du passkey -->
+    <section id="screen-register" class="screen screen--active">
+
+      <div class="screen-content">
+        <div class="hero-eyebrow">DSP2 · SCA · WebAuthn</div>
+        <h1 class="hero-title">Transaction<br /><em>signing</em><br />cryptographique</h1>
+        <p class="hero-desc">
+          Chaque paiement génère une signature <span class="mono">ES256</span> unique,
+          ancrée dans ton biométrique. Non-rejouable par construction.
+        </p>
+
+        <div class="tech-pills">
+          <span class="pill">ECDSA P-256</span>
+          <span class="pill">WebAuthn L2</span>
+          <span class="pill">Face ID / Touch ID</span>
+        </div>
+
+        <button class="btn btn--primary btn--large" id="btn-register">
+          <span class="btn-icon">⬡</span>
+          Créer mon passkey
+        </button>
+
+        <p class="hint-text">
+          Déclenche le pop-up natif Face ID / Touch ID de ton appareil.
+        </p>
+      </div>
+
+      <!-- Schéma technique décoratif -->
+      <div class="schema-box" aria-hidden="true">
+        <div class="schema-line">
+          <span class="schema-label">payload</span>
+          <span class="schema-value mono">{ montant, dest, ts, nonce }</span>
+        </div>
+        <div class="schema-arrow">↓ base64url encode</div>
+        <div class="schema-line">
+          <span class="schema-label">challenge</span>
+          <span class="schema-value mono">eyJtb250YW50Ijo...</span>
+        </div>
+        <div class="schema-arrow">↓ ECDSA P-256 sign</div>
+        <div class="schema-line">
+          <span class="schema-label">signature</span>
+          <span class="schema-value mono accent">A3F7·92BC·E1D4·...</span>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ÉCRAN 2 — Formulaire de transaction -->
+    <section id="screen-transaction" class="screen">
+
+      <div class="section-header">
+        <h2 class="section-title">Nouvelle transaction</h2>
+        <div class="passkey-indicator">
+          <span class="indicator-dot indicator-dot--ok"></span>
+          <span class="mono" id="passkey-id-display">passkey#----</span>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <div class="form-group">
+          <label class="form-label" for="input-montant">Montant</label>
+          <div class="input-wrapper">
+            <input
+              type="number"
+              id="input-montant"
+              class="form-input"
+              placeholder="0.00"
+              min="0.01"
+              step="0.01"
+            />
+            <span class="input-suffix mono">EUR</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="input-destinataire">Destinataire</label>
+          <input
+            type="text"
+            id="input-destinataire"
+            class="form-input"
+            placeholder="ex : Alice Martin"
+          />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Timestamp</label>
+          <div class="timestamp-display">
+            <span class="mono" id="timestamp-live">—</span>
+            <span class="timestamp-note">Auto · UTC · non-modifiable</span>
+          </div>
+        </div>
+
+        <div class="payload-preview" id="payload-preview">
+          <span class="payload-label">Payload qui sera signé</span>
+          <pre class="payload-code" id="payload-code">Remplir le formulaire…</pre>
+        </div>
+
+        <button class="btn btn--primary" id="btn-sign" disabled>
+          <span class="btn-icon">✦</span>
+          Signer avec mon passkey
+        </button>
+      </div>
+
+      <!-- Zone de feedback signature -->
+      <div class="sig-result" id="sig-result">
+        <div class="sig-result__header">
+          <span class="sig-badge">✓ Signé</span>
+          <span class="sig-algo mono">ES256 · ECDSA P-256</span>
+        </div>
+        <div class="sig-value mono" id="sig-value-display">—</div>
+        <div class="sig-meta">
+          <span id="sig-bytes-count">— octets</span>
+          · Signature DER encodée base64url
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ÉCRAN 3 — Historique + non-rejouabilité -->
+    <section id="screen-history" class="screen">
+
+      <div class="section-header">
+        <h2 class="section-title">Historique de session</h2>
+        <span class="tx-count mono" id="tx-count">0 tx</span>
+      </div>
+
+      <div id="history-list" class="history-list">
+        <!-- Les transactions sont injectées ici par ui.js -->
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- Toast notifications -->
+  <div class="toast-container" id="toast-container" aria-live="polite"></div>
+
+  <!-- Scripts ES modules -->
+  <script type="module" src="js/ui.js"></script>
+
+</body>
+</html>
