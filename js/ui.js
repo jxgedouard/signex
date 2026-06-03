@@ -1,7 +1,6 @@
 import { registerPasskey, signTransaction } from './webauthn.js';
 import { construirePayload, formaterSignature, construireTransactionSignee } from './crypto.js';
 
-// Références DOM
 const screens          = document.querySelectorAll('.screen');
 const btnRegister      = document.getElementById('btn-register');
 const btnSign          = document.getElementById('btn-sign');
@@ -19,29 +18,24 @@ const toastContainer   = document.getElementById('toast-container');
 const historyList      = document.getElementById('history-list');
 const txCount          = document.getElementById('tx-count');
 
-// État de session : liste des transactions signées
 let transactions = [];
 
-// Affiche un écran par son id, cache les autres
 function showScreen(id) {
   screens.forEach(s => s.classList.remove('screen--active'));
   document.getElementById(id).classList.add('screen--active');
 }
 
-// Affiche plusieurs écrans simultanément (formulaire + historique)
 function showScreens(...ids) {
   screens.forEach(s => s.classList.remove('screen--active'));
   ids.forEach(id => document.getElementById(id).classList.add('screen--active'));
 }
 
-// Timestamp live mis à jour chaque seconde
 function updateTimestamp() {
   timestampLive.textContent = new Date().toISOString();
 }
 setInterval(updateTimestamp, 1000);
 updateTimestamp();
 
-// Colorisation syntaxique JSON pour le payload preview
 function syntaxHighlight(json) {
   const escaped = json
     .replace(/&/g, '&amp;')
@@ -65,7 +59,6 @@ function syntaxHighlight(json) {
   );
 }
 
-// Met à jour le payload preview en temps réel quand l'utilisateur tape
 function updatePayloadPreview() {
   const montant = parseFloat(inputMontant.value);
   const dest    = inputDest.value.trim();
@@ -89,8 +82,6 @@ function updatePayloadPreview() {
 inputMontant.addEventListener('input', updatePayloadPreview);
 inputDest.addEventListener('input', updatePayloadPreview);
 
-// Typewriter par blocs sur la valeur de signature
-// Attend une signature formatée "A3F7·92BC·..." et révèle bloc par bloc
 function typewriterReveal(element, text, speed = 120) {
   const blocs = text.split('·');
   element.textContent = '';
@@ -109,7 +100,6 @@ function typewriterReveal(element, text, speed = 120) {
   }, speed);
 }
 
-// Affiche la zone de résultat avec animation et typewriter
 function showSigResult(signatureFormatee, byteCount) {
   sigValueDisplay.textContent = signatureFormatee;
   sigBytesCount.textContent   = `${byteCount} octets`;
@@ -125,7 +115,6 @@ function hideSigResult() {
   sigResult.classList.remove('sig-result--visible');
 }
 
-// Toast notifications
 function showToast(message, type = 'info', duration = 3500) {
   const toast = document.createElement('div');
   toast.className = `toast toast--${type}`;
@@ -134,14 +123,12 @@ function showToast(message, type = 'info', duration = 3500) {
   setTimeout(() => toast.remove(), duration);
 }
 
-// Ajoute une transaction à l'historique et met à jour le compteur
 function ajouterAuHistorique(tx) {
-  transactions.unshift(tx); // la plus récente en premier
+  transactions.unshift(tx);
   txCount.textContent = `${transactions.length} tx`;
   renderHistorique();
 }
 
-// Construit le HTML d'une carte de transaction
 function renderCarteTransaction(tx) {
   const carte = document.createElement('div');
   carte.className = 'tx-card';
@@ -150,7 +137,7 @@ function renderCarteTransaction(tx) {
   carte.innerHTML = `
     <div class="tx-card__header">
       <span class="tx-amount">${tx.payload.montant.toFixed(2)} EUR</span>
-      <span class="tx-signed-badge">Signe</span>
+      <span class="tx-signed-badge">Signé</span>
     </div>
     <div class="tx-card__meta">
       <span class="tx-dest">${tx.payload.destinataire}</span>
@@ -166,7 +153,6 @@ function renderCarteTransaction(tx) {
     </div>
   `;
 
-  // Attache le listener sur le bouton replay de cette carte
   carte.querySelector('.replay-trigger').addEventListener('click', () => {
     lancerReplay(tx, carte);
   });
@@ -174,7 +160,6 @@ function renderCarteTransaction(tx) {
   return carte;
 }
 
-// Reconstruit la liste complète de l'historique
 function renderHistorique() {
   historyList.innerHTML = '';
   transactions.forEach(tx => {
@@ -182,24 +167,21 @@ function renderHistorique() {
   });
 }
 
-// Lance la démonstration de non-rejouabilité pour une transaction
 async function lancerReplay(txOriginale, carte) {
   const btnReplay = carte.querySelector('.replay-trigger');
   btnReplay.disabled = true;
   btnReplay.textContent = 'Signature en cours...';
 
   try {
-    // Re-signe les memes montant + destinataire avec un nouveau timestamp + nonce
-    // C'est la démonstration : même données de base, signature totalement différente
+    // nouveau timestamp + nonce → challenge différent → signature différente : c'est la démo
     const payloadReplay = construirePayload(
       txOriginale.payload.montant,
       txOriginale.payload.destinataire
     );
 
-    const { signatureHex, byteCount } = await signTransaction(payloadReplay);
-    const signatureReplay = formaterSignature(signatureHex);
+    const { signatureHex } = await signTransaction(payloadReplay);
+    const signatureReplay  = formaterSignature(signatureHex);
 
-    // Affiche la comparaison côte à côte
     afficherResultatReplay(carte, txOriginale.signatureFormatee, signatureReplay);
 
   } catch (err) {
@@ -209,14 +191,11 @@ async function lancerReplay(txOriginale, carte) {
   }
 }
 
-// Injecte le bloc de comparaison original vs replay dans la carte
 function afficherResultatReplay(carte, sigOriginale, sigReplay) {
-  // Retire l'ancien résultat s'il existe déjà
   const ancienResultat = carte.querySelector('.replay-result');
   if (ancienResultat) ancienResultat.remove();
 
-  const zone = carte.querySelector('.replay-zone');
-
+  const zone    = carte.querySelector('.replay-zone');
   const resultat = document.createElement('div');
   resultat.className = 'replay-result';
 
@@ -232,23 +211,21 @@ function afficherResultatReplay(carte, sigOriginale, sigReplay) {
       </div>
     </div>
     <div class="replay-verdict">
-      <span class="replay-verdict__title">Token invalide - non-rejouable</span>
+      <span class="replay-verdict__title">Token invalide — non-rejouable</span>
       <span class="replay-verdict__reason">
-        Le timestamp a change, le nonce est different, le challenge WebAuthn est different,
-        la signature ES256 est differente. Le serveur rejetterait cette transaction.
+        Timestamp et nonce différents → challenge WebAuthn différent → signature ES256 différente.
+        Le serveur rejetterait cette transaction.
       </span>
     </div>
   `;
 
   zone.appendChild(resultat);
 
-  // Remet le bouton disponible pour rejouer autant de fois qu'on veut
   const btnReplay = carte.querySelector('.replay-trigger');
   btnReplay.disabled = false;
   btnReplay.textContent = 'Rejouer';
 }
 
-// Enregistrement du passkey
 btnRegister.addEventListener('click', async () => {
   btnRegister.disabled = true;
   btnRegister.classList.add('btn--loading');
@@ -271,7 +248,6 @@ btnRegister.addEventListener('click', async () => {
   }
 });
 
-// Signature d'une transaction
 btnSign.addEventListener('click', async () => {
   const payload = updatePayloadPreview();
   if (!payload) return;
@@ -289,12 +265,9 @@ btnSign.addEventListener('click', async () => {
     const tx = construireTransactionSignee(payload, signatureHex, credentialId);
     ajouterAuHistorique(tx);
 
-    // Affiche formulaire + historique côte à côte dès la première transaction
     showScreens('screen-transaction', 'screen-history');
-
     showToast('Transaction signée', 'success');
 
-    // Remet le formulaire à zéro pour la prochaine transaction
     inputMontant.value = '';
     inputDest.value    = '';
     updatePayloadPreview();
