@@ -2,13 +2,9 @@
 
 > Démonstration de transaction signing cryptographique par passkey WebAuthn, dans le contexte anti-fraude DSP2/SCA.
 
-![Signex](screenshot.png)
+<img width="1320" height="2342" alt="15E36530-124E-4943-AEEA-21D6400BE658_1_201_a" src="https://github.com/user-attachments/assets/7d786ccd-bf23-4745-aff2-df3ee8ce1f64" />
 
 Signex illustre le mécanisme de **dynamic linking** exigé par la DSP2 : chaque transaction génère une signature ES256 unique, ancrée dans le biométrique de l'utilisateur (Face ID / Touch ID). La signature est non-rejouable par construction — le payload signé contient un timestamp et un nonce, ce qui garantit qu'aucune deux signatures ne seront jamais identiques.
-
-Projet réalisé dans le cadre d'une candidature au poste Data Specialist Fraud & Claims Ops chez Green-Got.
-
----
 
 ## Lancer le projet
 
@@ -24,8 +20,6 @@ WebAuthn fonctionne sur `localhost` sans HTTPS. Pour tester Face ID sur mobile, 
 
 **Demo en ligne** : `https://jxgedouard.github.io/signex`
 
----
-
 ## Stack technique
 
 | Couche | Technologie |
@@ -35,8 +29,6 @@ WebAuthn fonctionne sur `localhost` sans HTTPS. Pour tester Face ID sur mobile, 
 | Frontend | HTML, CSS, JavaScript vanilla, ES modules |
 | Typo | Syne (display), JetBrains Mono (technique) |
 | Dépendances | Aucune |
-
----
 
 ## Architecture
 
@@ -77,22 +69,18 @@ WebAuthn fonctionne sur `localhost` sans HTTPS. Pour tester Face ID sur mobile, 
 [Historique de session — ui.js]
 ```
 
----
-
 ## Structure du projet
 
 ```
 signex/
 ├── index.html          Structure HTML des 3 écrans (register, transaction, historique)
-├── style.css           Design system complet — palette Green-Got, animations
+├── style.css           Design system complet, animations
 ├── js/
 │   ├── webauthn.js     Enregistrement et assertion WebAuthn (navigator.credentials)
 │   ├── crypto.js       Construction payload, encodage base64url, formatage signature
 │   └── ui.js           Navigation, événements, historique, démonstration replay
 └── README.md
 ```
-
----
 
 ## Choix techniques
 
@@ -108,29 +96,15 @@ ES256 est l'algorithme de signature défini dans le registre COSE (RFC 8152) et 
 
 ### Pourquoi vanilla JS sans framework
 
-Zéro dépendance signifie zéro surface d'attaque sur la chaîne d'approvisionnement (supply chain). Pour une démo de sécurité, importer 300 packages npm serait contradictoire. Le code est lisible directement, sans compilation ni bundler — un recruteur technique peut auditer chaque ligne.
+Zéro dépendance signifie zéro surface d'attaque sur la chaîne d'approvisionnement (supply chain). Pour une démo de sécurité, importer 300 packages npm serait contradictoire. Le code est lisible directement, sans compilation ni bundler.
 
 ### Pourquoi "never roll your own crypto"
 
-Toute la cryptographie dans Signex est déléguée au navigateur (`crypto.getRandomValues`, `crypto.randomUUID`) et au secure enclave (signature ES256 via WebAuthn). Aucune implémentation maison d'algorithme cryptographique. En production chez Green-Got, la vérification de signature se ferait via `fido2-lib` (Node.js) ou `py_webauthn` (Python) — des bibliothèques auditées, pas du code custom.
+Toute la cryptographie dans Signex est déléguée au navigateur (`crypto.getRandomValues`, `crypto.randomUUID`) et au secure enclave (signature ES256 via WebAuthn). Aucune implémentation maison d'algorithme cryptographique. En production, la vérification de signature se ferait via `fido2-lib` (Node.js) ou `py_webauthn` (Python).
 
 ### Lien avec la DSP2
 
 La DSP2 exige pour les paiements deux facteurs parmi : connaissance, possession, inhérence. WebAuthn couvre possession (l'appareil enregistré) et inhérence (biométrique). Le dynamic linking exige que la signature soit cryptographiquement liée au montant et au bénéficiaire — c'est exactement ce que fait le payload `{ montant, destinataire, timestamp, nonce }` encodé dans le challenge WebAuthn.
-
----
-
-## Intégration réelle chez Green-Got
-
-En production, ce mécanisme s'intégrerait ainsi :
-
-**Enregistrement** : `POST /auth/passkey/register` — le backend génère le challenge, le frontend appelle `navigator.credentials.create()`, le backend stocke la clé publique et le `credentialId` en base liés au compte utilisateur.
-
-**Signature** : `POST /transactions/sign` — le backend génère un challenge lié au payload de transaction, le frontend appelle `navigator.credentials.get()`, le backend vérifie la signature via `fido2-lib` avec la clé publique enregistrée.
-
-**Logs d'audit** : chaque assertion WebAuthn produit un `authenticatorData` signé contenant un compteur incrémental — toute rupture de séquence détecte une clonation de credential. Ces logs sont conservés pour conformité RGPD (base légale : obligation légale DSP2).
-
----
 
 ## Limites de la démo
 
@@ -142,4 +116,4 @@ En production, ce mécanisme s'intégrerait ainsi :
 | Gestion multi-appareils | Non implémentée | Plusieurs credentials par compte |
 | Révocation passkey | Non implémentée | Endpoint DELETE /auth/passkey/:id |
 
-La vérification côté client est un raccourci pédagogique assumé. Elle démontre la logique du mécanisme sans backend — ce qui suffit pour illustrer le concept en entretien.
+La vérification côté client est un raccourci pédagogique assumé. Elle démontre la logique du mécanisme sans backend.
